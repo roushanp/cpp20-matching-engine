@@ -10,6 +10,7 @@ add_library(matching_engine STATIC
     src/matching_engine.cpp
     src/order_book.cpp
     src/order_pool.cpp
+    src/replay.cpp
 )
 
 target_include_directories(matching_engine
@@ -27,6 +28,23 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     )
 elseif(MSVC)
     target_compile_options(matching_engine PRIVATE /W4 /permissive-)
+endif()
+
+add_executable(matching_engine_cli
+    app/matching_engine_cli.cpp
+)
+target_link_libraries(matching_engine_cli PRIVATE matching_engine)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(matching_engine_cli PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wsign-conversion
+    )
+elseif(MSVC)
+    target_compile_options(matching_engine_cli PRIVATE /W4 /permissive-)
 endif()
 
 include(CTest)
@@ -48,10 +66,15 @@ if(BUILD_TESTING)
         tests/matching_engine_system_tests.cpp
     )
 
+    add_executable(matching_engine_replay_tests
+        tests/replay_tests.cpp
+    )
+
     target_link_libraries(matching_engine_order_pool_tests PRIVATE matching_engine)
     target_link_libraries(matching_engine_order_book_tests PRIVATE matching_engine)
     target_link_libraries(matching_engine_matching_engine_tests PRIVATE matching_engine)
     target_link_libraries(matching_engine_system_tests PRIVATE matching_engine)
+    target_link_libraries(matching_engine_replay_tests PRIVATE matching_engine)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(matching_engine_order_pool_tests PRIVATE
@@ -101,8 +124,21 @@ if(BUILD_TESTING)
         target_compile_options(matching_engine_system_tests PRIVATE /W4 /permissive-)
     endif()
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(matching_engine_replay_tests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+        )
+    elseif(MSVC)
+        target_compile_options(matching_engine_replay_tests PRIVATE /W4 /permissive-)
+    endif()
+
     add_test(NAME matching_engine.order_pool COMMAND matching_engine_order_pool_tests)
     add_test(NAME matching_engine.order_book COMMAND matching_engine_order_book_tests)
     add_test(NAME matching_engine.engine COMMAND matching_engine_matching_engine_tests)
     add_test(NAME matching_engine.system COMMAND matching_engine_system_tests)
+    add_test(NAME matching_engine.replay COMMAND matching_engine_replay_tests)
 endif()

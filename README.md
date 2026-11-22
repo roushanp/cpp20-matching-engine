@@ -45,12 +45,55 @@ partial fills, multiple levels, maker pricing, market-order discard, and capacit
 The system test also runs 1,000 fixed-seed randomized submit/cancel events against
 an independent reference model and validates book invariants after every event.
 
+## Replay CLI
+
+The replay CSV format is:
+
+```text
+event_type,order_id,side,order_type,price_ticks,quantity
+```
+
+`NEW` records require `BUY` or `SELL`, `LIMIT` or `MARKET`, integer ticks, and
+a positive quantity. `CANCEL` records use only `event_type` and `order_id`; the
+remaining four fields must be empty. The parser intentionally accepts only plain,
+unquoted CSV records with exactly six columns.
+
+```sh
+./build/matching_engine_cli replay data/sample_orders.csv
+```
+
+The optional `--capacity <count>` selects the fixed resting-order capacity.
+Replay reports malformed rows without aborting valid later rows. Replaying the
+same input produces the same execution reports, trades, summary, and final book.
+
+Example output for the sample file:
+
+```text
+Replay summary
+  parsed_events=7
+  malformed_rows=0
+  new_events=6
+  cancel_events=1
+  accepted_orders=6
+  rejected_orders=0
+  cancelled_orders=1
+  unknown_cancels=0
+  trades=3
+...
+Final order book
+BIDS
+  price_ticks=98 quantity=12 order_ids=6
+ASKS
+  <empty>
+```
+
 ## Verification performed
 
 On macOS with Apple Clang 21.0.0, the Debug and Release configurations built
 successfully with `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion`.
 CTest passed the `matching_engine.order_pool`, `matching_engine.order_book`,
-`matching_engine.engine`, and `matching_engine.system` tests in both configurations.
+`matching_engine.engine`, `matching_engine.system`, and `matching_engine.replay`
+tests in both configurations.
 
 ## Next milestone
 

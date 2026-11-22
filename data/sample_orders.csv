@@ -1,0 +1,8 @@
+event_type,order_id,side,order_type,price_ticks,quantity
+NEW,1,SELL,LIMIT,100,40
+NEW,2,SELL,LIMIT,101,50
+NEW,3,BUY,LIMIT,101,60
+NEW,4,BUY,MARKET,0,50
+NEW,5,BUY,LIMIT,99,25
+CANCEL,5,,,,
+NEW,6,BUY,LIMIT,98,12
