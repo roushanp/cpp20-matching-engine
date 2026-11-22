@@ -47,15 +47,38 @@ struct OrderBookSnapshot {
     std::vector<PriceLevelSnapshot> asks{};
 };
 
+struct RestingOrder {
+    OrderId id{};
+    Side side{Side::Buy};
+    Price price{};
+    Quantity remaining_quantity{};
+    OrderIndex index{kInvalidOrderIndex};
+};
+
+enum class ConsumeOrderStatus {
+    Consumed,
+    InvalidOrderIndex,
+    InvalidQuantity,
+};
+
+struct ConsumeOrderResult {
+    ConsumeOrderStatus status{ConsumeOrderStatus::InvalidOrderIndex};
+    bool removed{false};
+};
+
 class OrderBook {
 public:
     explicit OrderBook(std::size_t maximum_orders);
 
+    [[nodiscard]] AddOrderStatus can_add_resting_order(const OrderRequest& request) const noexcept;
     [[nodiscard]] AddOrderResult add_resting_order(const OrderRequest& request);
     [[nodiscard]] RemoveOrderStatus remove_order(OrderId id) noexcept;
+    [[nodiscard]] ConsumeOrderResult consume_order(OrderIndex index, Quantity quantity) noexcept;
 
+    [[nodiscard]] bool contains(OrderId id) const noexcept;
     [[nodiscard]] std::optional<Price> best_bid() const noexcept;
     [[nodiscard]] std::optional<Price> best_ask() const noexcept;
+    [[nodiscard]] std::optional<RestingOrder> best_resting_order(Side side) const noexcept;
     [[nodiscard]] std::size_t active_order_count() const noexcept;
     [[nodiscard]] std::size_t capacity() const noexcept;
     [[nodiscard]] OrderBookSnapshot snapshot() const;

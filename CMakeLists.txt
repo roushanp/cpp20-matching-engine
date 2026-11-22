@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(matching_engine STATIC
+    src/matching_engine.cpp
     src/order_book.cpp
     src/order_pool.cpp
 )
@@ -39,8 +40,13 @@ if(BUILD_TESTING)
         tests/order_book_tests.cpp
     )
 
+    add_executable(matching_engine_matching_engine_tests
+        tests/matching_engine_tests.cpp
+    )
+
     target_link_libraries(matching_engine_order_pool_tests PRIVATE matching_engine)
     target_link_libraries(matching_engine_order_book_tests PRIVATE matching_engine)
+    target_link_libraries(matching_engine_matching_engine_tests PRIVATE matching_engine)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(matching_engine_order_pool_tests PRIVATE
@@ -66,6 +72,19 @@ if(BUILD_TESTING)
         target_compile_options(matching_engine_order_book_tests PRIVATE /W4 /permissive-)
     endif()
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(matching_engine_matching_engine_tests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+        )
+    elseif(MSVC)
+        target_compile_options(matching_engine_matching_engine_tests PRIVATE /W4 /permissive-)
+    endif()
+
     add_test(NAME matching_engine.order_pool COMMAND matching_engine_order_pool_tests)
     add_test(NAME matching_engine.order_book COMMAND matching_engine_order_book_tests)
+    add_test(NAME matching_engine.engine COMMAND matching_engine_matching_engine_tests)
 endif()

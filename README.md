@@ -6,7 +6,7 @@ fixed-capacity memory management, CMake/CTest verification, and portable C++20.
 
 ## Current progress
 
-Completed: domain model, fixed-capacity `OrderPool`, and a resting `OrderBook`.
+Completed: domain model, fixed-capacity `OrderPool`, `OrderBook`, and single-threaded `MatchingEngine`.
 
 - Prices use signed integer ticks (`Price`), never floating point.
 - Order IDs and quantities use fixed-width integer types.
@@ -20,9 +20,11 @@ Completed: domain model, fixed-capacity `OrderPool`, and a resting `OrderBook`.
 - Orders at the same price use an intrusive FIFO queue backed by pool indices.
 - Order IDs map to pool indices for expected O(1) duplicate detection and cancellation.
 - Empty price levels are removed when their final order is cancelled.
+- Incoming orders execute against the best opposite price, then FIFO makers.
+- Trades execute at the resting maker price; partial fills update remaining quantity.
+- Unfilled limit orders rest; unfilled market quantity is discarded.
 
-The matching engine itself has not yet been implemented; the book does not match
-crossing orders in this milestone.
+The engine does not implement networking or concurrency.
 
 ## Build and test
 
@@ -38,16 +40,16 @@ For an optimized build, substitute `Release` for `Debug`.
 
 The current tests cover pool allocation, release, slot reuse, exhaustion,
 invalid slot handling, double release, invalid requests, best prices, FIFO
-priority, cancellation, empty-level removal, duplicate IDs, and pool reuse.
+priority, cancellation, empty-level removal, duplicate IDs, pool reuse,
+partial fills, multiple levels, maker pricing, market-order discard, and capacity rejection.
 
 ## Verification performed
 
 On macOS with Apple Clang 21.0.0, the Debug and Release configurations built
 successfully with `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion`.
-CTest passed the `matching_engine.order_pool` and `matching_engine.order_book`
-tests in both configurations.
+CTest passed the `matching_engine.order_pool`, `matching_engine.order_book`,
+and `matching_engine.engine` tests in both configurations.
 
 ## Next milestone
 
-Implement the single-threaded price-time matching path, with focused tests for
-full fills, partial fills, price improvement, and FIFO priority.
+Add GitHub Actions CI for CMake configure, build, and CTest on Ubuntu Linux.

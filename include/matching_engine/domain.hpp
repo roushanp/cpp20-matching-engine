@@ -68,11 +68,22 @@ struct Trade {
     Quantity quantity{};
 };
 
+enum class ExecutionStatus {
+    Accepted,
+    RejectedInvalidRequest,
+    RejectedDuplicateOrderId,
+    RejectedPoolExhausted,
+    RejectedLevelQuantityOverflow,
+    RejectedLevelOrderCountOverflow,
+};
+
 struct ExecutionReport {
     OrderId order_id{};
+    ExecutionStatus status{ExecutionStatus::RejectedInvalidRequest};
     OrderRequestError validation_error{OrderRequestError::None};
     Quantity executed_quantity{};
     Quantity remaining_quantity{};
+    bool rested{false};
     std::vector<Trade> trades{};
 };
 

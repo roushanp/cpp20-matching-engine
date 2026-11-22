@@ -10,25 +10,37 @@ OrderBook::OrderBook(const std::size_t maximum_orders) : pool_(maximum_orders) {
     order_lookup_.reserve(maximum_orders);
 }
 
-AddOrderResult OrderBook::add_resting_order(const OrderRequest& request) {
+AddOrderStatus OrderBook::can_add_resting_order(const OrderRequest& request) const noexcept {
     if (validate_order_request(request) != OrderRequestError::None) {
-        return {.status = AddOrderStatus::InvalidRequest};
+        return AddOrderStatus::InvalidRequest;
     }
     if (request.type != OrderType::Limit) {
-        return {.status = AddOrderStatus::MarketOrderCannotRest};
+        return AddOrderStatus::MarketOrderCannotRest;
     }
     if (order_lookup_.contains(request.id)) {
-        return {.status = AddOrderStatus::DuplicateOrderId};
+        return AddOrderStatus::DuplicateOrderId;
+    }
+    if (pool_.size() == pool_.capacity()) {
+        return AddOrderStatus::PoolExhausted;
     }
 
     const PriceLevel* const existing_level = find_level(request.side, request.price);
     if (existing_level != nullptr) {
         if (request.quantity > std::numeric_limits<Quantity>::max() - existing_level->total_quantity) {
-            return {.status = AddOrderStatus::LevelQuantityOverflow};
+            return AddOrderStatus::LevelQuantityOverflow;
         }
         if (existing_level->order_count == std::numeric_limits<std::uint32_t>::max()) {
-            return {.status = AddOrderStatus::LevelOrderCountOverflow};
+            return AddOrderStatus::LevelOrderCountOverflow;
         }
+    }
+
+    return AddOrderStatus::Added;
+}
+
+AddOrderResult OrderBook::add_resting_order(const OrderRequest& request) {
+    const AddOrderStatus admission_status = can_add_resting_order(request);
+    if (admission_status != AddOrderStatus::Added) {
+        return {.status = admission_status};
     }
 
     const AllocationResult allocation = pool_.allocate(request);
@@ -97,6 +109,35 @@ RemoveOrderStatus OrderBook::remove_order(const OrderId id) noexcept {
     return RemoveOrderStatus::Removed;
 }
 
+ConsumeOrderResult OrderBook::consume_order(const OrderIndex index, const Quantity quantity) noexcept {
+    OrderNode* const node = pool_.try_get(index);
+    if (node == nullptr) {
+        return {.status = ConsumeOrderStatus::InvalidOrderIndex};
+    }
+    if (quantity == 0U || quantity > node->remaining_quantity) {
+        return {.status = ConsumeOrderStatus::InvalidQuantity};
+    }
+
+    PriceLevel* const level = find_level(node->side, node->price);
+    assert(level != nullptr);
+    level->total_quantity -= quantity;
+    node->remaining_quantity -= quantity;
+
+    if (node->remaining_quantity != 0U) {
+        return {.status = ConsumeOrderStatus::Consumed, .removed = false};
+    }
+
+    const OrderId id = node->id;
+    const RemoveOrderStatus remove_status = remove_order(id);
+    assert(remove_status == RemoveOrderStatus::Removed);
+    static_cast<void>(remove_status);
+    return {.status = ConsumeOrderStatus::Consumed, .removed = true};
+}
+
+bool OrderBook::contains(const OrderId id) const noexcept {
+    return order_lookup_.contains(id);
+}
+
 std::optional<Price> OrderBook::best_bid() const noexcept {
     if (bids_.empty()) {
         return std::nullopt;
@@ -109,6 +150,32 @@ std::optional<Price> OrderBook::best_ask() const noexcept {
         return std::nullopt;
     }
     return asks_.begin()->first;
+}
+
+std::optional<RestingOrder> OrderBook::best_resting_order(const Side side) const noexcept {
+    const PriceLevel* level = nullptr;
+    if (side == Side::Buy) {
+        if (bids_.empty()) {
+            return std::nullopt;
+        }
+        level = &bids_.begin()->second;
+    } else {
+        if (asks_.empty()) {
+            return std::nullopt;
+        }
+        level = &asks_.begin()->second;
+    }
+
+    assert(level->head != kInvalidOrderIndex);
+    const OrderNode* const node = pool_.try_get(level->head);
+    assert(node != nullptr);
+    return RestingOrder{
+        .id = node->id,
+        .side = node->side,
+        .price = node->price,
+        .remaining_quantity = node->remaining_quantity,
+        .index = level->head,
+    };
 }
 
 std::size_t OrderBook::active_order_count() const noexcept {
