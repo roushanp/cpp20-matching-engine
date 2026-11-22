@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(cpp20_matching_engine LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_library(matching_engine STATIC
+    src/order_pool.cpp
+)
+
+target_include_directories(matching_engine
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(matching_engine PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wsign-conversion
+    )
+elseif(MSVC)
+    target_compile_options(matching_engine PRIVATE /W4 /permissive-)
+endif()
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_executable(matching_engine_order_pool_tests
+        tests/order_pool_tests.cpp
+    )
+
+    target_link_libraries(matching_engine_order_pool_tests PRIVATE matching_engine)
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(matching_engine_order_pool_tests PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+        )
+    elseif(MSVC)
+        target_compile_options(matching_engine_order_pool_tests PRIVATE /W4 /permissive-)
+    endif()
+
+    add_test(NAME matching_engine.order_pool COMMAND matching_engine_order_pool_tests)
+endif()
