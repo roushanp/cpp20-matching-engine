@@ -6,7 +6,7 @@ fixed-capacity memory management, CMake/CTest verification, and portable C++20.
 
 ## Current progress
 
-Completed: domain model and fixed-capacity `OrderPool`.
+Completed: domain model, fixed-capacity `OrderPool`, and a resting `OrderBook`.
 
 - Prices use signed integer ticks (`Price`), never floating point.
 - Order IDs and quantities use fixed-width integer types.
@@ -16,8 +16,13 @@ Completed: domain model and fixed-capacity `OrderPool`.
   released slots through an O(1) index-based free list.
 - Pool exhaustion, invalid indices, and double release are explicit outcomes.
 - Nodes use indices rather than owning pointers for future order-queue links.
+- Bid and ask price levels use ordered maps; best bid/ask retrieval is O(1).
+- Orders at the same price use an intrusive FIFO queue backed by pool indices.
+- Order IDs map to pool indices for expected O(1) duplicate detection and cancellation.
+- Empty price levels are removed when their final order is cancelled.
 
-The matching engine itself has not yet been implemented.
+The matching engine itself has not yet been implemented; the book does not match
+crossing orders in this milestone.
 
 ## Build and test
 
@@ -31,17 +36,18 @@ ctest --test-dir build/Debug --output-on-failure
 
 For an optimized build, substitute `Release` for `Debug`.
 
-The current pool tests cover allocation, release, slot reuse, exhaustion,
-invalid slot handling, double release, and invalid order requests.
+The current tests cover pool allocation, release, slot reuse, exhaustion,
+invalid slot handling, double release, invalid requests, best prices, FIFO
+priority, cancellation, empty-level removal, duplicate IDs, and pool reuse.
 
 ## Verification performed
 
 On macOS with Apple Clang 21.0.0, the Debug and Release configurations built
 successfully with `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion`.
-CTest passed the `matching_engine.order_pool` test in both configurations.
+CTest passed the `matching_engine.order_pool` and `matching_engine.order_book`
+tests in both configurations.
 
 ## Next milestone
 
-Implement ordered price levels and the single-threaded price-time matching path,
-with focused tests for full fills, partial fills, price improvement, and FIFO
-priority.
+Implement the single-threaded price-time matching path, with focused tests for
+full fills, partial fills, price improvement, and FIFO priority.

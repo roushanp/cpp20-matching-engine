@@ -75,6 +75,15 @@ bool OrderPool::is_allocated(const OrderIndex index) const noexcept {
     return try_get(index) != nullptr;
 }
 
+OrderNode* OrderPool::try_get(const OrderIndex index) noexcept {
+    if (static_cast<std::size_t>(index) >= slots_.size()) {
+        return nullptr;
+    }
+
+    OrderNode& node = slots_[static_cast<std::size_t>(index)];
+    return node.in_use ? &node : nullptr;
+}
+
 const OrderNode* OrderPool::try_get(const OrderIndex index) const noexcept {
     if (static_cast<std::size_t>(index) >= slots_.size()) {
         return nullptr;

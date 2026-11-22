@@ -36,6 +36,7 @@ public:
     [[nodiscard]] ReleaseStatus release(OrderIndex index) noexcept;
 
     [[nodiscard]] bool is_allocated(OrderIndex index) const noexcept;
+    [[nodiscard]] OrderNode* try_get(OrderIndex index) noexcept;
     [[nodiscard]] const OrderNode* try_get(OrderIndex index) const noexcept;
     [[nodiscard]] std::size_t capacity() const noexcept;
     [[nodiscard]] std::size_t size() const noexcept;
