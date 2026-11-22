@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, test, and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes cmake ninja-build gcc g++ gh
+
+      - name: Configure Release build
+        run: >-
+          cmake -S . -B build/release -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_CXX_COMPILER=g++
+
+      - name: Build all targets
+        run: cmake --build build/release --parallel
+
+      - name: Run full test suite
+        run: ctest --test-dir build/release --output-on-failure
+
+      - name: Create release archive
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          package_name="matching_engine_cli-${RELEASE_TAG}-linux-x86_64"
+          mkdir -p "dist/${package_name}"
+          cp build/release/matching_engine_cli "dist/${package_name}/"
+          cp README.md "dist/${package_name}/"
+          cp data/sample_orders.csv "dist/${package_name}/"
+          tar -czf "dist/${package_name}.tar.gz" -C dist "${package_name}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "${RELEASE_TAG}" "dist/matching_engine_cli-${RELEASE_TAG}-linux-x86_64.tar.gz" \
+            --verify-tag \
+            --generate-notes \
+            --title "${RELEASE_TAG}"

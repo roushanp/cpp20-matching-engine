@@ -151,6 +151,27 @@ UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
 ctest --test-dir build/sanitizers --output-on-failure
 ```
 
+## Releases
+
+Pushing a tag matching `v*` starts the release workflow. It builds a GCC Release
+configuration on Ubuntu, runs the full CTest suite, and publishes a compressed
+Linux x86_64 CLI archive containing `matching_engine_cli`, this README, and the
+sample CSV. GitHub also supplies the tagged source-code archives on the release
+page.
+
+Create an annotated release tag only after the desired commit is on `main`:
+
+```sh
+git tag -a v1.0.0 -m "v1.0.0"
+git push origin v1.0.0
+```
+
+Open the repository's **Actions** tab to follow the release job. Once it passes,
+the generated notes, source archives, and
+`matching_engine_cli-v1.0.0-linux-x86_64.tar.gz` asset are available from the
+repository's **Releases** page. The workflow authenticates with the built-in
+`GITHUB_TOKEN`; no personal access token is stored in the repository.
+
 ## Next milestone
 
 Add GitHub Actions CI for CMake configure, build, and CTest on Ubuntu Linux.
