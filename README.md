@@ -123,6 +123,34 @@ CTest passed the `matching_engine.order_pool`, `matching_engine.order_book`,
 `matching_engine.engine`, `matching_engine.system`, and `matching_engine.replay`
 tests in both configurations.
 
+## Continuous integration
+
+GitHub Actions runs on pushes and pull requests targeting `main`, and can also
+be started manually from the repository's **Actions** tab. The workflow builds
+and tests GCC and Clang in Debug and Release configurations on Ubuntu Linux. A
+separate GCC Debug job runs the full test suite with AddressSanitizer and
+UndefinedBehaviorSanitizer.
+
+To inspect a failure, open the failed workflow run in the repository's
+**Actions** tab, select the failed matrix job, and expand the failed step. CTest
+is invoked with `--output-on-failure`, so failing test output appears directly
+in that step's log.
+
+To reproduce a GCC sanitizer failure locally on Linux:
+
+```sh
+cmake -S . -B build/sanitizers -G Ninja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build build/sanitizers --parallel
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+ctest --test-dir build/sanitizers --output-on-failure
+```
+
 ## Next milestone
 
 Add GitHub Actions CI for CMake configure, build, and CTest on Ubuntu Linux.

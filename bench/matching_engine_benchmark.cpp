@@ -13,6 +13,18 @@
 #include <string_view>
 #include <vector>
 
+#ifndef MATCHING_ENGINE_BENCHMARK_COMPILER_ID
+#define MATCHING_ENGINE_BENCHMARK_COMPILER_ID "unconfigured"
+#endif
+
+#ifndef MATCHING_ENGINE_BENCHMARK_COMPILER_VERSION
+#define MATCHING_ENGINE_BENCHMARK_COMPILER_VERSION "unconfigured"
+#endif
+
+#ifndef MATCHING_ENGINE_BENCHMARK_BUILD_TYPE
+#define MATCHING_ENGINE_BENCHMARK_BUILD_TYPE "unconfigured"
+#endif
+
 namespace {
 
 using matching_engine::ExecutionReport;
