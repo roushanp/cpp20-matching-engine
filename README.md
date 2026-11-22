@@ -42,13 +42,15 @@ The current tests cover pool allocation, release, slot reuse, exhaustion,
 invalid slot handling, double release, invalid requests, best prices, FIFO
 priority, cancellation, empty-level removal, duplicate IDs, pool reuse,
 partial fills, multiple levels, maker pricing, market-order discard, and capacity rejection.
+The system test also runs 1,000 fixed-seed randomized submit/cancel events against
+an independent reference model and validates book invariants after every event.
 
 ## Verification performed
 
 On macOS with Apple Clang 21.0.0, the Debug and Release configurations built
 successfully with `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion`.
 CTest passed the `matching_engine.order_pool`, `matching_engine.order_book`,
-and `matching_engine.engine` tests in both configurations.
+`matching_engine.engine`, and `matching_engine.system` tests in both configurations.
 
 ## Next milestone
 

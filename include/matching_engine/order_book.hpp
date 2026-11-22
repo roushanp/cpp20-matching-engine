@@ -82,6 +82,7 @@ public:
     [[nodiscard]] std::size_t active_order_count() const noexcept;
     [[nodiscard]] std::size_t capacity() const noexcept;
     [[nodiscard]] OrderBookSnapshot snapshot() const;
+    [[nodiscard]] bool validate_invariants() const noexcept;
 
 private:
     using BidLevels = std::map<Price, PriceLevel, std::greater<>>;

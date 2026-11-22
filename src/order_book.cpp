@@ -6,6 +6,74 @@
 
 namespace matching_engine {
 
+namespace {
+
+template <typename Levels>
+bool validate_levels(
+    const Levels& levels,
+    const Side expected_side,
+    const OrderPool& pool) noexcept {
+    for (const auto& [price, level] : levels) {
+        if (level.price != price || level.order_count == 0U) {
+            return false;
+        }
+
+        Quantity calculated_quantity = 0;
+        std::uint32_t calculated_count = 0;
+        OrderIndex expected_previous = kInvalidOrderIndex;
+        OrderIndex index = level.head;
+
+        while (index != kInvalidOrderIndex) {
+            const OrderNode* const node = pool.try_get(index);
+            if (node == nullptr || node->side != expected_side || node->price != price
+                || node->remaining_quantity == 0U || node->previous != expected_previous
+                || calculated_count == level.order_count) {
+                return false;
+            }
+            if (node->remaining_quantity > std::numeric_limits<Quantity>::max() - calculated_quantity) {
+                return false;
+            }
+
+            calculated_quantity += node->remaining_quantity;
+            ++calculated_count;
+            expected_previous = index;
+            index = node->next;
+        }
+
+        if (calculated_count != level.order_count || calculated_quantity != level.total_quantity
+            || expected_previous != level.tail) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <typename Levels>
+std::size_t occurrences_of(
+    const Levels& levels,
+    const OrderPool& pool,
+    const OrderIndex sought_index) noexcept {
+    std::size_t occurrences = 0;
+    for (const auto& [price, level] : levels) {
+        static_cast<void>(price);
+        OrderIndex index = level.head;
+        while (index != kInvalidOrderIndex) {
+            if (index == sought_index) {
+                ++occurrences;
+            }
+            const OrderNode* const node = pool.try_get(index);
+            if (node == nullptr) {
+                return 0;
+            }
+            index = node->next;
+        }
+    }
+    return occurrences;
+}
+
+}  // namespace
+
 OrderBook::OrderBook(const std::size_t maximum_orders) : pool_(maximum_orders) {
     order_lookup_.reserve(maximum_orders);
 }
@@ -201,6 +269,33 @@ OrderBookSnapshot OrderBook::snapshot() const {
     }
 
     return book_snapshot;
+}
+
+bool OrderBook::validate_invariants() const noexcept {
+    if (!pool_.validate_invariants() || !validate_levels(bids_, Side::Buy, pool_)
+        || !validate_levels(asks_, Side::Sell, pool_)) {
+        return false;
+    }
+
+    std::size_t active_pool_nodes = 0;
+    for (std::size_t raw_index = 0; raw_index < pool_.capacity(); ++raw_index) {
+        const OrderIndex index = static_cast<OrderIndex>(raw_index);
+        const OrderNode* const node = pool_.try_get(index);
+        if (node == nullptr) {
+            continue;
+        }
+
+        ++active_pool_nodes;
+        const auto lookup_iterator = order_lookup_.find(node->id);
+        if (lookup_iterator == order_lookup_.end() || lookup_iterator->second != index) {
+            return false;
+        }
+        if (occurrences_of(bids_, pool_, index) + occurrences_of(asks_, pool_, index) != 1U) {
+            return false;
+        }
+    }
+
+    return active_pool_nodes == pool_.size() && active_pool_nodes == order_lookup_.size();
 }
 
 PriceLevel* OrderBook::find_level(const Side side, const Price price) noexcept {

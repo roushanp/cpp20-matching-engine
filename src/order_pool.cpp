@@ -105,4 +105,27 @@ bool OrderPool::empty() const noexcept {
     return active_count_ == 0U;
 }
 
+bool OrderPool::validate_invariants() const noexcept {
+    if (active_count_ > slots_.size()) {
+        return false;
+    }
+
+    std::size_t free_count = 0;
+    OrderIndex index = free_head_;
+    while (index != kInvalidOrderIndex) {
+        if (static_cast<std::size_t>(index) >= slots_.size() || free_count == slots_.size()) {
+            return false;
+        }
+
+        const OrderNode& node = slots_[static_cast<std::size_t>(index)];
+        if (node.in_use) {
+            return false;
+        }
+        ++free_count;
+        index = node.next_free;
+    }
+
+    return active_count_ + free_count == slots_.size();
+}
+
 }  // namespace matching_engine
