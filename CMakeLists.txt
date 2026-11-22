@@ -47,6 +47,28 @@ elseif(MSVC)
     target_compile_options(matching_engine_cli PRIVATE /W4 /permissive-)
 endif()
 
+add_executable(matching_engine_benchmark
+    bench/matching_engine_benchmark.cpp
+)
+target_link_libraries(matching_engine_benchmark PRIVATE matching_engine)
+target_compile_definitions(matching_engine_benchmark PRIVATE
+    MATCHING_ENGINE_BENCHMARK_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}"
+    MATCHING_ENGINE_BENCHMARK_COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}"
+    MATCHING_ENGINE_BENCHMARK_BUILD_TYPE="$<CONFIG>"
+)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(matching_engine_benchmark PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wsign-conversion
+    )
+elseif(MSVC)
+    target_compile_options(matching_engine_benchmark PRIVATE /W4 /permissive-)
+endif()
+
 include(CTest)
 
 if(BUILD_TESTING)

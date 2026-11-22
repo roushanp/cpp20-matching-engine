@@ -87,6 +87,34 @@ ASKS
   <empty>
 ```
 
+## Benchmark
+
+Build and run a Release benchmark:
+
+```sh
+cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/Release --target matching_engine_benchmark
+./build/Release/matching_engine_benchmark --events 100000
+./build/Release/matching_engine_benchmark --events 1000000
+```
+
+The fixed-seed synthetic flow mixes passive limit orders, market orders that
+consume them, and cancellations. A warm-up run happens before timing. Throughput
+uses one total wall-clock interval; sampled latency is measured in a separate
+pass every `--sample-stride` operations, so latency clocks do not dominate the
+throughput result.
+
+The executable reports compiler/build information, workload configuration,
+runtime, events per second, accepted/rejected/matched order counts, trade count,
+and sampled p50/p95/p99/p99.9 latency in nanoseconds. It reports only the local
+run's measurements.
+
+Limitations: this is a single-process microbenchmark. CPU frequency scaling,
+thermal state, background work, allocator behavior, cache state, clock granularity,
+and the sampled-latency instrumentation all affect results. The workload is
+synthetic and has a deliberately small active book; it is not representative of
+production market data or a cross-system performance comparison.
+
 ## Verification performed
 
 On macOS with Apple Clang 21.0.0, the Debug and Release configurations built
